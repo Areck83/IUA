@@ -28,8 +28,8 @@ cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 #Definir los puntos de la pantalla
 PANTALLA_X_INI = 0
 PANTALLA_Y_INI = 0
-PANTALLA_X_FIN = 1000
-PANTALLA_Y_FIN = 700
+PANTALLA_X_FIN = 1800
+PANTALLA_Y_FIN = 900
 
 #Definir el color del puntero
 color_mouse = (255,0,255)
@@ -38,6 +38,42 @@ relacion_aspecto = (PANTALLA_X_FIN - PANTALLA_X_INI) / (PANTALLA_Y_FIN - PANTALL
 
 #Margen del área azul
 X_Y_INI = 100
+
+#Gracias a omes
+def calculate_distance(x1, y1, x2, y2):
+    p1 = np.array([x1,y1])
+    p2 = np.array ([x2,y2])
+    return np.linalg.norm(p1-p2)
+
+
+def detect_finger_down(hand_landmarks):
+    finger_down = False
+    color_base = (255,0,112)
+    color_index = (255,198,82)
+
+    x_base1 = int(hand_landmarks.landmark[0].x * width)
+    y_base1 = int(hand_landmarks.landmark[0].y + height)
+
+    x_base2 = int(hand_landmarks.landmark[9].x * width)
+    y_base2 = int(hand_landmarks.landmark[9].y * height)
+
+    x_index = int(hand_landmarks.landmark[8].x * width)
+    y_index = int(hand_landmarks.landmark[8].y * height)
+
+    d_base = calculate_distance(x_base1, y_base1, x_base2, y_base2)
+    d_base_index = calculate_distance(x_base1, y_base1, x_index, y_index)
+
+    if d_base_index < d_base:
+        finger_down = True
+        color_base = (255,0,255)
+        color_index = (255,0,255)
+
+    cv2.circle(output, (x_base1, y_base1), 5, color_base, 2)
+    cv2.circle(output, (x_index, y_index), 5, color_index, 2)
+    cv2.line(output, (x_base1, y_base1), (x_base2, y_base2), color_base, 3)
+    cv2.line(output, (x_base1, y_base1), (x_index, y_index), color_index, 3)
+
+    return finger_down
 
 with mp_hands.Hands(
     static_image_mode = False,
@@ -75,7 +111,8 @@ with mp_hands.Hands(
 
                 #Mover el mouse
                 pyautogui.moveTo(int(xm), int(ym))
-
+                if detect_finger_down(hand_landmarks):
+                    pyautogui.click()
                 #Poner el circulo a donde movimos la mano
                 cv2.circle(output, (x,y), 10, color_mouse, 3)
                 cv2.circle(output, (x,y), 5, color_mouse, -1)
